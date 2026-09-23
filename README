@@ -1,0 +1,22 @@
+#### alignment code ####
+1) align_color_thermal_boxes.py - draw boxes around leaves in color + thermal images to create data for calibration step
+2) estimate_mapping_from_boxes.py - create and modify the calibration file based on the boxes from the alignment step
+3) view_box_overlay.py - visualize the resulting boxes
+
+#### Datasets ####
+1) merge_datasets.py - tool for merging two sets of labeled bounding boxes (e.g. roboflow_boxes + SAM3 annotations)
+2) propagate_boxes.py - tool for tracking bounding boxes between adjacent frames to increase data
+
+#### Probes ####
+1) multispectral_detection_loader.py - multispectral data loader used for the linear + nn probes
+2) linear_probe_multi_v2.py - logistic regression based probe that tests vs leaf dataset
+3) leaf_nn_classifier.py - nn based probe that tests vs leaf dataset
+
+python leaf_nn_classifier.py 
+        --train-samples "/data3/datasets/shady_lanes_10_10_25/scripts/SAM3_baseline/grape_diseases.train_with_tracking.txt" 
+        --eval-samples "/data3/datasets/shady_lanes_10_10_25/scripts/SAM3_baseline/grape_diseases.test.txt" 
+        --calibration "/data3/datasets/shady_lanes_10_10_25/scripts/thermal_color_matches_calib.json" 
+        --positive-classes esca 
+        --negative-classes "healthy leaf" "unhealthy leaf" 
+        --modalities color --unfreeze "1" 
+        --results "probe_results/single.csv" > "probe_results//esca__color.txt"
