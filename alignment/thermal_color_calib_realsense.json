@@ -1,0 +1,408 @@
+{
+  "thermal": {
+    "w": 320,
+    "h": 240,
+    "fl_x": 294.4198222721732,
+    "fl_y": 294.4198222721732,
+    "cx": 160.0,
+    "cy": 120.0,
+    "model": "pinhole, refine=focal starting from /data3/datasets/shady_lanes_10_10_25/scripts/thermal_color_matches_calib.json",
+    "hfov_deg": 60.10095639437391
+  },
+  "extrinsics_color_to_thermal": {
+    "R": [
+      [
+        0.9980935499817639,
+        -0.05935040988735041,
+        -0.01693500312972282
+      ],
+      [
+        0.055888717602804866,
+        0.9855332614397786,
+        -0.16000200573926207
+      ],
+      [
+        0.026186193490351985,
+        0.15875049430498292,
+        0.9869714098333393
+      ]
+    ],
+    "t_m": [
+      0.07059465015484626,
+      0.05834009448179538,
+      0.010669055505060107
+    ],
+    "t_unit": [
+      0.07059465015484626,
+      0.05834009448179538,
+      0.010669055505060107
+    ],
+    "note": "X_thermal = R @ X_color + t, t in meters (t_unit holds the same metric t)"
+  },
+  "K_thermal": [
+    [
+      294.4198222721732,
+      0.0,
+      160.0
+    ],
+    [
+      0.0,
+      294.4198222721732,
+      120.0
+    ],
+    [
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "dist_thermal": null,
+  "K_color": [
+    [
+      920.056,
+      0.0,
+      635.526
+    ],
+    [
+      0.0,
+      920.196,
+      370.034
+    ],
+    [
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "dist_color": [
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "diagnostics": {
+    "n_points_used": 79,
+    "n_points_rejected": 21,
+    "n_inliers": 12,
+    "ransac_px": 4.0,
+    "median_reproj_px_inliers": 1.9808897438075352,
+    "median_reproj_px_all": 10.082796254621103,
+    "thermal_center_in_color_mm": [
+      -74.0,
+      -54.99999999999999,
+      1.734723475976807e-15
+    ],
+    "per_image": [
+      {
+        "color": "/data3/datasets/vineyard_2026/fenn_valley/young_vines/rosbag2_2026_07_22-16_26_41/raw_images/color/color_00418.png",
+        "n": 2,
+        "n_inliers": 0,
+        "mean_offset_px": [
+          3.49613475597247,
+          17.143178007426705
+        ],
+        "rms_px": 17.517689435858745
+      },
+      {
+        "color": "/data3/datasets/vineyard_2026/fenn_valley/young_vines/rosbag2_2026_07_22-16_26_41/raw_images/color/color_01425.png",
+        "n": 5,
+        "n_inliers": 0,
+        "mean_offset_px": [
+          -8.037648367977033,
+          10.463410203645797
+        ],
+        "rms_px": 15.497166846125964
+      },
+      {
+        "color": "/data3/datasets/vineyard_2026/fenn_valley/young_vines/rosbag2_2026_07_22-16_26_41/raw_images/color/color_01110.png",
+        "n": 6,
+        "n_inliers": 1,
+        "mean_offset_px": [
+          -7.058405472999344,
+          9.345355090669491
+        ],
+        "rms_px": 14.5362835551358
+      },
+      {
+        "color": "/data3/datasets/vineyard_2026/fenn_valley/young_vines/rosbag2_2026_07_22-16_26_41/raw_images/color/color_00447.png",
+        "n": 2,
+        "n_inliers": 0,
+        "mean_offset_px": [
+          -6.671732579884036,
+          5.53434036546934
+        ],
+        "rms_px": 9.36605450086865
+      },
+      {
+        "color": "/data3/datasets/vineyard_2026/fenn_valley/young_vines/rosbag2_2026_07_22-16_26_41/raw_images/color/color_01130.png",
+        "n": 2,
+        "n_inliers": 0,
+        "mean_offset_px": [
+          0.8290121906400145,
+          -12.671074685690314
+        ],
+        "rms_px": 14.829991086522782
+      },
+      {
+        "color": "/data3/datasets/vineyard_2026/fenn_valley/young_vines/rosbag2_2026_07_22-16_26_41/raw_images/color/color_00608.png",
+        "n": 2,
+        "n_inliers": 0,
+        "mean_offset_px": [
+          -3.0432930637082336,
+          -1.2346623545011948
+        ],
+        "rms_px": 8.218840043847415
+      },
+      {
+        "color": "/data3/datasets/vineyard_2026/fenn_valley/young_vines/rosbag2_2026_07_22-16_26_41/raw_images/color/color_00292.png",
+        "n": 1,
+        "n_inliers": 0,
+        "mean_offset_px": [
+          -13.254460867820379,
+          -8.50429821299349
+        ],
+        "rms_px": 15.74813706417702
+      },
+      {
+        "color": "/data3/datasets/vineyard_2026/fenn_valley/young_vines/rosbag2_2026_07_22-16_29_22/raw_images/color/color_00295.png",
+        "n": 4,
+        "n_inliers": 1,
+        "mean_offset_px": [
+          -5.52794187349858,
+          -4.8801817814603865
+        ],
+        "rms_px": 9.438280338217782
+      },
+      {
+        "color": "/data3/datasets/vineyard_2026/fenn_valley/young_vines/rosbag2_2026_07_22-16_29_22/raw_images/color/color_00302.png",
+        "n": 4,
+        "n_inliers": 0,
+        "mean_offset_px": [
+          0.29448035901823744,
+          -7.970713531367444
+        ],
+        "rms_px": 8.384986964895175
+      },
+      {
+        "color": "/data3/datasets/vineyard_2026/fenn_valley/young_vines/rosbag2_2026_07_22-16_29_22/raw_images/color/color_00334.png",
+        "n": 1,
+        "n_inliers": 1,
+        "mean_offset_px": [
+          -0.38247587560366014,
+          0.48061375562997455
+        ],
+        "rms_px": 0.61422909204916
+      },
+      {
+        "color": "/data3/datasets/vineyard_2026/fenn_valley/young_vines/rosbag2_2026_07_22-16_29_22/raw_images/color/color_00432.png",
+        "n": 2,
+        "n_inliers": 0,
+        "mean_offset_px": [
+          7.314118944709705,
+          14.385034393106984
+        ],
+        "rms_px": 16.351143707052326
+      },
+      {
+        "color": "/data3/datasets/vineyard_2026/fenn_valley/young_vines/rosbag2_2026_07_22-16_29_22/raw_images/color/color_00078.png",
+        "n": 1,
+        "n_inliers": 0,
+        "mean_offset_px": [
+          7.513873874147578,
+          -5.257721671039953
+        ],
+        "rms_px": 9.170710864852335
+      },
+      {
+        "color": "/data3/datasets/vineyard_2026/fenn_valley/young_vines/rosbag2_2026_07_22-16_29_22/raw_images/color/color_00188.png",
+        "n": 4,
+        "n_inliers": 0,
+        "mean_offset_px": [
+          1.068000210348849,
+          10.213629992370624
+        ],
+        "rms_px": 16.24685820631402
+      },
+      {
+        "color": "/data3/datasets/vineyard_2026/modales-9_6_26/riesling/rosbag2_2026_09_06-14_38_19/raw_images/color/color_00871.png",
+        "n": 1,
+        "n_inliers": 0,
+        "mean_offset_px": [
+          -9.78990620016782,
+          -35.84842440674559
+        ],
+        "rms_px": 37.16115977541925
+      },
+      {
+        "color": "/data3/datasets/vineyard_2026/modales-9_6_26/riesling/rosbag2_2026_09_06-14_38_19/raw_images/color/color_00270.png",
+        "n": 3,
+        "n_inliers": 0,
+        "mean_offset_px": [
+          -0.9333979533712361,
+          -18.387265542296976
+        ],
+        "rms_px": 19.482475913635472
+      },
+      {
+        "color": "/data3/datasets/vineyard_2026/modales-9_6_26/riesling/rosbag2_2026_09_06-14_38_19/raw_images/color/color_00977.png",
+        "n": 5,
+        "n_inliers": 1,
+        "mean_offset_px": [
+          2.4518991842062205,
+          6.2925931094043035
+        ],
+        "rms_px": 8.91558160854469
+      },
+      {
+        "color": "/data3/datasets/vineyard_2026/modales-9_6_26/riesling/rosbag2_2026_09_06-14_44_18/raw_images/color/color_00373.png",
+        "n": 2,
+        "n_inliers": 1,
+        "mean_offset_px": [
+          1.2927615969343549,
+          -5.65995051849044
+        ],
+        "rms_px": 6.561530747285141
+      },
+      {
+        "color": "/data3/datasets/vineyard_2026/modales/regular-hybrid/rosbag2_2026_07_22-17_14_04/raw_images/color/color_00446.png",
+        "n": 3,
+        "n_inliers": 2,
+        "mean_offset_px": [
+          -3.0638748122435686,
+          -5.683060013473295
+        ],
+        "rms_px": 13.004241032185368
+      },
+      {
+        "color": "/data3/datasets/vineyard_2026/modales/regular-hybrid/rosbag2_2026_07_22-17_14_04/raw_images/color/color_00471.png",
+        "n": 3,
+        "n_inliers": 0,
+        "mean_offset_px": [
+          3.9653385059339237,
+          -5.592988751277658
+        ],
+        "rms_px": 8.037401867473411
+      },
+      {
+        "color": "/data3/datasets/vineyard_2026/modales/regular-hybrid/rosbag2_2026_07_22-17_14_04/raw_images/color/color_00787.png",
+        "n": 1,
+        "n_inliers": 0,
+        "mean_offset_px": [
+          -8.302773181408867,
+          -2.5002639280669747
+        ],
+        "rms_px": 8.67106465273528
+      },
+      {
+        "color": "/data3/datasets/vineyard_2026/modales/regular-hybrid/rosbag2_2026_07_22-17_14_04/raw_images/color/color_00318.png",
+        "n": 1,
+        "n_inliers": 0,
+        "mean_offset_px": [
+          -9.671194093127568,
+          -1.7416827556478722
+        ],
+        "rms_px": 9.826772308762767
+      },
+      {
+        "color": "/data3/datasets/vineyard_2026/modales/regular-hybrid/rosbag2_2026_07_22-17_14_04/raw_images/color/color_00638.png",
+        "n": 1,
+        "n_inliers": 0,
+        "mean_offset_px": [
+          -11.595390999720053,
+          -31.66594625639965
+        ],
+        "rms_px": 33.72217734295311
+      },
+      {
+        "color": "/data3/datasets/vineyard_2026/modales/regular-hybrid/rosbag2_2026_07_22-17_16_51/raw_images/color/color_00310.png",
+        "n": 5,
+        "n_inliers": 1,
+        "mean_offset_px": [
+          -8.453784784456198,
+          -9.315360626024285
+        ],
+        "rms_px": 18.265386512396955
+      },
+      {
+        "color": "/data3/datasets/vineyard_2026/modales/regular-hybrid/rosbag2_2026_07_22-17_16_51/raw_images/color/color_00366.png",
+        "n": 1,
+        "n_inliers": 1,
+        "mean_offset_px": [
+          0.5734290344325643,
+          -1.0936311998593737
+        ],
+        "rms_px": 1.2348481926277888
+      },
+      {
+        "color": "/data3/datasets/vineyard_2026/modales/regular-hybrid/rosbag2_2026_07_22-17_16_51/raw_images/color/color_00018.png",
+        "n": 2,
+        "n_inliers": 0,
+        "mean_offset_px": [
+          -15.411851016771735,
+          6.71688292676555
+        ],
+        "rms_px": 16.882127486423983
+      },
+      {
+        "color": "/data3/datasets/vineyard_2026/modales/riesling/rosbag2_2026_07_22-17_20_13/raw_images/color/color_00279.png",
+        "n": 3,
+        "n_inliers": 0,
+        "mean_offset_px": [
+          -7.57930185511692,
+          -8.812265817140846
+        ],
+        "rms_px": 12.659389451330684
+      },
+      {
+        "color": "/data3/datasets/vineyard_2026/modales/riesling/rosbag2_2026_07_22-17_20_13/raw_images/color/color_00174.png",
+        "n": 3,
+        "n_inliers": 0,
+        "mean_offset_px": [
+          4.378683531453021,
+          9.5826786963796
+        ],
+        "rms_px": 12.080616327726501
+      },
+      {
+        "color": "/data3/datasets/vineyard_2026/modales/riesling/rosbag2_2026_07_22-17_20_13/raw_images/color/color_00282.png",
+        "n": 2,
+        "n_inliers": 1,
+        "mean_offset_px": [
+          -2.312487287014534,
+          -1.752102187633767
+        ],
+        "rms_px": 3.7743995683724276
+      },
+      {
+        "color": "/data3/datasets/vineyard_2026/modales/riesling/rosbag2_2026_07_22-17_20_13/raw_images/color/color_00405.png",
+        "n": 3,
+        "n_inliers": 1,
+        "mean_offset_px": [
+          0.423619205625594,
+          -8.870767425706076
+        ],
+        "rms_px": 11.253771435342339
+      },
+      {
+        "color": "/data3/datasets/vineyard_2026/modales/riesling/rosbag2_2026_07_22-17_20_13/raw_images/color/color_00431.png",
+        "n": 2,
+        "n_inliers": 0,
+        "mean_offset_px": [
+          -4.530828573747293,
+          -12.66367094620766
+        ],
+        "rms_px": 15.237775343492999
+      },
+      {
+        "color": "/data3/datasets/vineyard_2026/modales/riesling/rosbag2_2026_07_22-17_20_13/raw_images/color/color_00070.png",
+        "n": 2,
+        "n_inliers": 1,
+        "mean_offset_px": [
+          3.4407941177658756,
+          1.2844065546376413
+        ],
+        "rms_px": 4.506187784346993
+      }
+    ]
+  }
+}
