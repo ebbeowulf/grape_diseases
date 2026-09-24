@@ -15,10 +15,10 @@
 #
 set -u
 
-# TRAIN="/data3/datasets/shady_lanes_10_10_25/scripts/SAM3_baseline/grape_diseases.train.txt"
-TRAIN="/data3/datasets/shady_lanes_10_10_25/scripts/SAM3_baseline/grape_diseases.train_with_tracking.txt"
-EVAL="/data3/datasets/shady_lanes_10_10_25/scripts/SAM3_baseline/grape_diseases.test.txt"
-CALIB="/data3/datasets/shady_lanes_10_10_25/scripts/thermal_color_matches_calib.json"
+# TRAIN="/data3/datasets/shady_lanes_10_10_25/grape_disease_scripts/datasets/grape_diseases.train.txt"
+TRAIN="/data3/datasets/shady_lanes_10_10_25/grape_disease_scripts/datasets/grape_diseases.train_with_tracking.txt"
+EVAL="/data3/datasets/shady_lanes_10_10_25/grape_disease_scripts/datasets/grape_diseases.test.txt"
+CALIB="/data3/datasets/shady_lanes_10_10_25/grape_disease_scripts/alignment/thermal_color_matches_calib.json"
 PROBE="leaf_nn_classifier.py"
 
 if [ $# -ne 4 ]; then

@@ -68,6 +68,9 @@ class MultiSpectralDetection(Dataset):
         self.box_dir, self.box_prefix = box_dir, box_prefix
         self.color_dir, self.thermal_dir, self.ext = color_dir, thermal_dir, ext
         self.unmapped = set()
+        # The warp depends only on the calibration and the two frame shapes,
+        # so it is computed once per shape pair rather than once per frame.
+        self._warp_cache = {}
 
         with open(calibration_file) as fh:
             calib = json.load(fh)
@@ -111,7 +114,7 @@ class MultiSpectralDetection(Dataset):
         median. What survives is relief relative to the canopy, not absolute
         standoff, which also removes drift between capture sessions.
         """
-        b, g, r = cv2.split(color_bgr.astype(np.float32))
+        b, g, r = cv2.split(color_bgr)
         green = (g > b) & (g > r) & valid & (depth > 0)
         if green.sum() < self.min_green_pixels:
             green = valid & (depth > 0)
@@ -153,28 +156,58 @@ class MultiSpectralDetection(Dataset):
 
     # ---- geometry ------------------------------------------------------
 
+    def _warp_maps(self, color_shape, thermal_shape):
+        """Remap tables, validity mask and shared-FOV bounding box, cached.
+
+        Returns (u_t, v_t, valid, (y0, y1, x0, x1)) already cropped to the
+        box, or None when no colour pixel lands on the thermal sensor.
+        Building the tables is the most expensive step per frame and its
+        result never changes, so it runs once per shape pair per process.
+        """
+        key = (tuple(color_shape), tuple(thermal_shape[:2]))
+        if key not in self._warp_cache:
+            h_t, w_t = thermal_shape[:2]
+            u_t, v_t = self._warp_tables(color_shape)
+            valid = (u_t >= 0) & (u_t <= w_t - 1) & (v_t >= 0) & (v_t <= h_t - 1)
+            entry = None
+            if valid.any():
+                ys, xs = np.where(valid)
+                y0, y1 = ys.min(), ys.max() + 1
+                x0, x1 = xs.min(), xs.max() + 1
+                crop = (slice(y0, y1), slice(x0, x1))
+                entry = (np.ascontiguousarray(u_t[crop]),
+                         np.ascontiguousarray(v_t[crop]),
+                         np.ascontiguousarray(valid[crop]),
+                         (y0, y1, x0, x1))
+                for a in entry[:3]:
+                    a.flags.writeable = False   # shared across frames
+            self._warp_cache[key] = entry
+        return self._warp_cache[key]
+
+    def _warp_tables(self, color_shape):
+        """Where each colour pixel lands in the thermal image."""
+        h_c, w_c = color_shape
+        u, v = np.meshgrid(np.arange(w_c), np.arange(h_c))
+        pix = np.stack([u, v, np.ones_like(u)], -1).reshape(-1, 3).T
+        rays = np.linalg.inv(self.K_color) @ pix
+        proj = self.K_thermal @ (self.R @ (rays * self.depth_baselines) + self.t)
+        proj /= proj[2, :]
+        return (proj[0, :].reshape(h_c, w_c).astype(np.float32),
+                proj[1, :].reshape(h_c, w_c).astype(np.float32))
+
     def _warp_thermal(self, thermal, color_shape):
         """Project thermal into the colour frame at a constant depth.
+
+        Full-frame version, kept for callers outside __getitem__; the main
+        path uses the cached, pre-cropped tables from _warp_maps instead.
 
         For every colour pixel: back-project to a 3D ray, push it out to the
         assumed depth, move it into the thermal camera's frame, and project.
         The result is a lookup table saying where each colour pixel lands in
         the thermal image, which cv2.remap then samples.
         """
-        h_c, w_c = color_shape
         h_t, w_t = thermal.shape[:2]
-
-        # Homogeneous pixel coordinates for the whole colour frame, 3 x N.
-        u, v = np.meshgrid(np.arange(w_c), np.arange(h_c))
-        pix = np.stack([u, v, np.ones_like(u)], -1).reshape(-1, 3).T
-        rays = np.linalg.inv(self.K_color) @ pix
-
-        # Scale rays to depth, rotate and translate into the thermal frame,
-        # then project and divide through by z.
-        proj = self.K_thermal @ (self.R @ (rays * self.depth_baselines) + self.t)
-        proj /= proj[2, :]
-        u_t = proj[0, :].reshape(h_c, w_c).astype(np.float32)
-        v_t = proj[1, :].reshape(h_c, w_c).astype(np.float32)
+        u_t, v_t = self._warp_tables(color_shape)
 
         warped = cv2.remap(thermal, u_t, v_t, cv2.INTER_LINEAR,
                            borderMode=cv2.BORDER_CONSTANT, borderValue=0)
@@ -194,7 +227,7 @@ class MultiSpectralDetection(Dataset):
         sessions, so a warm afternoon and a cool morning become comparable.
         Returns None when the frame has too little vegetation to reference.
         """
-        b, g, r = cv2.split(color_bgr.astype(np.float32))
+        b, g, r = cv2.split(color_bgr)
         green = (g > b) & (g > r) & valid
         if green.sum() < self.min_green_pixels:
             green = valid          # fall back to the whole valid region
@@ -235,7 +268,7 @@ class MultiSpectralDetection(Dataset):
         units to output units (100 turns millimetres into 10 cm steps); clip
         bounds rows far behind the canopy so they cannot dominate.
         """
-        b, g, r = cv2.split(color_bgr.astype(np.float32))
+        b, g, r = cv2.split(color_bgr)
         green = (g > b) & (g > r) & valid & (depth > 0)
         if green.sum() < self.min_green_pixels:
             green = valid & (depth > 0)
@@ -265,19 +298,17 @@ class MultiSpectralDetection(Dataset):
             if depth_raw is None:
                 return None
 
-        # 2. Register thermal onto colour.
-        warped, valid = self._warp_thermal(thermal_raw, color_bgr.shape[:2])
-        if not valid.any():
+        # 2-3. Register thermal onto colour, cropped to the region covered by
+        #      both sensors. Everything after this lives in crop coordinates.
+        #      remap is per-pixel, so remapping only the crop gives the same
+        #      values as remapping the full frame and then cropping.
+        maps = self._warp_maps(color_bgr.shape[:2], thermal_raw.shape)
+        if maps is None:
             return None
-
-        # 3. Crop to the region covered by both sensors. Everything after
-        #    this point lives in crop coordinates.
-        ys, xs = np.where(valid)
-        y0, y1 = ys.min(), ys.max() + 1
-        x0, x1 = xs.min(), xs.max() + 1
+        u_t, v_t, valid, (y0, y1, x0, x1) = maps
+        warped = cv2.remap(thermal_raw, u_t, v_t, cv2.INTER_LINEAR,
+                           borderMode=cv2.BORDER_CONSTANT, borderValue=0)
         color_bgr = color_bgr[y0:y1, x0:x1]
-        warped = warped[y0:y1, x0:x1]
-        valid = valid[y0:y1, x0:x1]
         if depth_raw is not None:
             depth_raw = depth_raw[y0:y1, x0:x1]
 
@@ -287,8 +318,8 @@ class MultiSpectralDetection(Dataset):
             return None
         depth = None
         if depth_raw is not None:
-            depth = self._depth_relief(depth_raw, color_bgr, valid)
-            # depth = self._depth_zscore(depth_raw, color_bgr, valid)
+            # depth = self._depth_relief(depth_raw, color_bgr, valid)
+            depth = self._depth_zscore(depth_raw, color_bgr, valid)
             if depth is None:
                 return None
 

@@ -298,12 +298,19 @@ def main():
         class_map[name] = NEGATIVE
 
     use_depth = "depth" in args.modalities
-    common = dict(size=args.frame_size, use_depth=use_depth,
-                  box_dir=args.box_dir)
     train_set = MultiSpectralDetection(args.train_samples, args.calibration,
-                                       class_map, **common)
+                                       class_map, size=args.frame_size,
+                                       use_depth=use_depth,box_dir="combined_roboflow_sam3_with_tracking")
+                                    #    use_depth=use_depth,box_dir="combined_roboflow_sam3")
     eval_set = MultiSpectralDetection(args.eval_samples, args.calibration,
-                                      class_map, **common)
+                                      class_map, size=args.frame_size,
+                                      use_depth=use_depth,box_dir="combined_roboflow_sam3")
+    # common = dict(size=args.frame_size, use_depth=use_depth,
+    #               box_dir=args.box_dir)
+    # train_set = MultiSpectralDetection(args.train_samples, args.calibration,
+    #                                    class_map, **common)
+    # eval_set = MultiSpectralDetection(args.eval_samples, args.calibration,
+    #                                   class_map, **common)
 
     print(f"modalities: {'+'.join(args.modalities)}  "
           f"unfreeze: {args.unfreeze} from {args.unfreeze_from}")
