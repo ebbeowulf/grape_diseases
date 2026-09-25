@@ -41,16 +41,77 @@ def overlaps(a, b):
     return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
 
 
-def crop_window(image, x, y, side, size):
-    _, h, w = image.shape
+def square_window(box, pad):
+    """Padded square centred on a box, before clamping to the frame."""
+    x0, y0, x1, y1 = box
+    side = max(x1 - x0, y1 - y0) * (1 + 2 * pad)
+    return (x0 + x1) / 2 - side / 2, (y0 + y1) / 2 - side / 2, side
+
+
+def clamp_window(x, y, side, h, w):
+    """Slide a square window inside an h x w frame; returns (x, y, side)."""
     a = int(max(0, min(x, w - side)))
     b = int(max(0, min(y, h - side)))
-    window = image[:, b:b + int(side), a:a + int(side)]
+    return a, b, int(side)
+
+
+def crop_window(image, x, y, side, size):
+    _, h, w = image.shape
+    a, b, s = clamp_window(x, y, side, h, w)
+    window = image[:, b:b + s, a:a + s]
     if window.shape[1] < 2 or window.shape[2] < 2:
         return None
     return nn.functional.interpolate(
         window.unsqueeze(0), size=(size, size),
         mode="bilinear", align_corners=False).squeeze(0)
+
+
+def frame_rng(seed, index):
+    """Per-frame generator, so the negatives sampled from a frame do not
+    depend on which frames were read before it."""
+    return random.Random(seed * 1_000_003 + index)
+
+
+def frame_samples(record, modalities, size, pad, max_negatives, rng):
+    """Every crop one frame contributes, plus the negatives it removes.
+
+    Shared by build_crops and visualize_leaf_boxes.py, so both see exactly
+    the same selection. Returns (kept, overlapping, capped):
+        kept         (box, label, window, cut) per crop, where window is the
+                     clamped (x, y, side) actually cropped and cut maps
+                     modality to the resized crop
+        overlapping  negatives dropped for touching a positive
+        capped       negatives dropped by the max_negatives cap
+    """
+    images = {m: record[MODALITY_KEYS[m]] for m in modalities}
+    boxes = record["labels"]["boxes_xyxy"].numpy().reshape(-1, 4)
+    classes = record["labels"]["class_labels"].tolist()
+
+    positive = [b for b, l in zip(boxes, classes) if l == POSITIVE]
+    negative = [b for b, l in zip(boxes, classes) if l == NEGATIVE]
+    clean, overlapping = [], []
+    for n in negative:
+        if any(overlaps(n, p) for p in positive):
+            overlapping.append(n)
+        else:
+            clean.append(n)
+
+    capped = []
+    if max_negatives and len(clean) > max_negatives:
+        rng.shuffle(clean)
+        clean, capped = clean[:max_negatives], clean[max_negatives:]
+
+    _, h, w = images[modalities[0]].shape
+    kept = []
+    for box, label in ([(b, POSITIVE) for b in positive]
+                       + [(b, NEGATIVE) for b in clean]):
+        x, y, side = square_window(box, pad)
+        cut = {m: crop_window(images[m], x, y, side, size)
+               for m in modalities}
+        if any(v is None for v in cut.values()):
+            continue
+        kept.append((box, label, clamp_window(x, y, side, h, w), cut))
+    return kept, overlapping, capped
 
 
 def build_crops(dataset, modalities, size, pad, max_negatives, seed):
@@ -59,7 +120,6 @@ def build_crops(dataset, modalities, size, pad, max_negatives, seed):
     Crops are small and the dataset is not, so holding them in memory costs
     far less than re-warping and re-cropping each frame every epoch.
     """
-    rng = random.Random(seed)
     samples, skipped, dropped = [], 0, 0
 
     for index in range(len(dataset)):
@@ -68,28 +128,11 @@ def build_crops(dataset, modalities, size, pad, max_negatives, seed):
             skipped += 1
             continue
 
-        images = {m: record[MODALITY_KEYS[m]] for m in modalities}
-        boxes = record["labels"]["boxes_xyxy"].numpy().reshape(-1, 4)
-        classes = record["labels"]["class_labels"].tolist()
-
-        positive = [b for b, l in zip(boxes, classes) if l == POSITIVE]
-        negative = [b for b, l in zip(boxes, classes) if l == NEGATIVE]
-        clean = [n for n in negative if not any(overlaps(n, p) for p in positive)]
-        dropped += len(negative) - len(clean)
-        if max_negatives and len(clean) > max_negatives:
-            rng.shuffle(clean)
-            clean = clean[:max_negatives]
-
-        for box, label in ([(b, POSITIVE) for b in positive]
-                           + [(b, NEGATIVE) for b in clean]):
-            x0, y0, x1, y1 = box
-            side = max(x1 - x0, y1 - y0) * (1 + 2 * pad)
-            x, y = (x0 + x1) / 2 - side / 2, (y0 + y1) / 2 - side / 2
-            cut = {m: crop_window(images[m], x, y, side, size)
-                   for m in modalities}
-            if any(v is None for v in cut.values()):
-                continue
-            samples.append((cut, label))
+        kept, overlapping, _ = frame_samples(record, modalities, size, pad,
+                                             max_negatives,
+                                             frame_rng(seed, index))
+        dropped += len(overlapping)
+        samples.extend((cut, label) for _, label, _, cut in kept)
 
     labels = np.array([s[1] for s in samples])
     print(f"    {len(samples)} crops "
@@ -223,6 +266,20 @@ class LeafClassifier(nn.Module):
         return self.head(torch.cat(feats, dim=1))
 
 
+def build_class_map(positive_classes, negative_classes):
+    class_map = {name: POSITIVE for name in positive_classes}
+    for name in negative_classes:
+        class_map[name] = NEGATIVE
+    return class_map
+
+
+def make_dataset(samples_file, calibration, class_map, frame_size,
+                 use_depth, box_dir):
+    return MultiSpectralDetection(samples_file, calibration, class_map,
+                                  size=frame_size, use_depth=use_depth,
+                                  box_dir=box_dir)
+
+
 def evaluate(model, loader, device):
     model.eval()
     truth, pred = [], []
@@ -243,8 +300,14 @@ def main():
                    help="dataset list file for evaluation")
     p.add_argument("--calibration", type=str, required=True,
                    help="camera calibration json for the thermal warp")
-    p.add_argument("--box-dir", type=str, default="combined_roboflow_sam3",
-                   help="subdirectory under each root holding box pickles")
+    p.add_argument("--train-box-dir", type=str,
+                   default="combined_roboflow_sam3_with_tracking",
+                   help="subdirectory under each training root holding "
+                        "box pickles")
+    p.add_argument("--eval-box-dir", type=str,
+                   default="combined_roboflow_sam3",
+                   help="subdirectory under each eval root holding box "
+                        "pickles")
     p.add_argument("--positive-classes", type=str, nargs="+", required=True,
                    help="box class names forming the positive class")
     p.add_argument("--negative-classes", type=str, nargs="+", required=True,
@@ -293,25 +356,15 @@ def main():
     args = p.parse_args()
 
     torch.manual_seed(args.seed)
-    class_map = {name: POSITIVE for name in args.positive_classes}
-    for name in args.negative_classes:
-        class_map[name] = NEGATIVE
+    class_map = build_class_map(args.positive_classes, args.negative_classes)
 
     use_depth = "depth" in args.modalities
-    train_set = MultiSpectralDetection(args.train_samples, args.calibration,
-                                       class_map, size=args.frame_size,
-                                       use_depth=use_depth,box_dir="combined_roboflow_sam3_with_tracking")
-                                    #    use_depth=use_depth,box_dir="combined_roboflow_sam3")
-    eval_set = MultiSpectralDetection(args.eval_samples, args.calibration,
-                                      class_map, size=args.frame_size,
-                                      use_depth=use_depth,box_dir="combined_roboflow_sam3")
-    # common = dict(size=args.frame_size, use_depth=use_depth,
-    #               box_dir=args.box_dir)
-    # train_set = MultiSpectralDetection(args.train_samples, args.calibration,
-    #                                    class_map, **common)
-    # eval_set = MultiSpectralDetection(args.eval_samples, args.calibration,
-    #                                   class_map, **common)
+    train_set = make_dataset(args.train_samples, args.calibration, class_map,
+                             args.frame_size, use_depth, args.train_box_dir)
+    eval_set = make_dataset(args.eval_samples, args.calibration, class_map,
+                            args.frame_size, use_depth, args.eval_box_dir)
 
+    print(f"boxes: train {args.train_box_dir}  eval {args.eval_box_dir}")
     print(f"modalities: {'+'.join(args.modalities)}  "
           f"unfreeze: {args.unfreeze} from {args.unfreeze_from}")
     print(f"positive: {', '.join(args.positive_classes)}")
